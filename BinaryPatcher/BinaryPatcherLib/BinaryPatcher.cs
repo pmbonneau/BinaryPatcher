@@ -16,7 +16,7 @@ namespace BinaryPatcherLib
 
         string FileToPatchPath = "";
 
-        public BinaryPatcher(string PatchContainerPath, string pFileToPatchPath)
+        public BinaryPatcher(string pFileToPatchPath, string PatchContainerPath)
         {
             XmlDocument XmlContainer = new XmlDocument();
             XmlContainer.Load(PatchContainerPath);
@@ -52,6 +52,15 @@ namespace BinaryPatcherLib
 
         public bool ApplyPatchToFile()
         {
+            FileStream WriteStream;
+            WriteStream = new FileStream(FileToPatchPath, FileMode.Open);
+            for (int i = 0; i < ID.Length; i++)
+            {
+                //WriteStream converts decimal to hexadecimal when it writes data to file.
+                WriteStream.Position = Convert.ToInt32(Position[i], 16);
+                WriteStream.Write(StringToDecByteArray(Data[i]), 0x0, StringToDecByteArray(Data[i]).Length);
+            }
+            WriteStream.Close();
             return true;
         }
 
@@ -63,19 +72,21 @@ namespace BinaryPatcherLib
             {
                 if (PatchID == ID[i])
                 {
-                    //WriteStream.Write(StringToByteArray(Data[i]), Convert.ToInt32(Position[i]), 1);
-                    byte[] Test = new byte[1];
-                    Test[0] = 0x62;
-                    WriteStream.Position = 0x2;
-                    //WriteStream.Write(Test, 0x0, Test.Length);
-                    bool testw = WriteStream.CanWrite;
-                    WriteStream.WriteByte(0x62);
+                    //WriteStream converts decimal to hexadecimal when it writes data to file.
+                    WriteStream.Position = Convert.ToInt32(Position[i],16);
+                    WriteStream.Write(StringToDecByteArray(Data[i]), 0x0, StringToDecByteArray(Data[i]).Length);
                 }
             }
+            WriteStream.Close();
             return true;
         }
 
-        private byte[] StringToByteArray(string StringToConvert)
+        public string[] GetPatchListID()
+        {
+            return ID;
+        }
+
+        private byte[] StringToHexByteArray(string StringToConvert)
         {
             byte[] DataArray = new byte[StringToConvert.Length / 2];
             int ChunkSize = 2;
@@ -91,6 +102,17 @@ namespace BinaryPatcherLib
                 ArrayItemCount++;
             }
             return DataArray;
+        }
+
+        private byte[] StringToDecByteArray(string StringToConvert)
+        {
+            int NumberChars = StringToConvert.Length;
+            byte[] bytes = new byte[NumberChars / 2];
+            for (int i = 0; i < NumberChars; i += 2)
+            {
+                bytes[i / 2] = Convert.ToByte(StringToConvert.Substring(i, 2), 16);
+            }
+            return bytes;
         }
     }
 }

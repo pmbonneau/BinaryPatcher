@@ -17,10 +17,36 @@ namespace BinaryPatcherUI
             InitializeComponent();
         }
 
+        string FilePath = "";
+        string PatchContainerPath = "";
+        BinaryPatcherLib.BinaryPatcher Patcher;
+
         private void btnPatchFile_Click(object sender, EventArgs e)
         {
-            BinaryPatcherLib.BinaryPatcher Patcher = new BinaryPatcherLib.BinaryPatcher("Sample.xml","testfile.bin");
-            Patcher.ApplyPatchToFile("Sample Patch");
+
+        }
+
+        private void btnOpenFile_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog vOpenFileDialog = new OpenFileDialog();
+            DialogResult result = vOpenFileDialog.ShowDialog();
+            FilePath = vOpenFileDialog.FileName;
+            txtFilePath.Text = vOpenFileDialog.FileName;
+        }
+
+        private void btnOpenContainer_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog vOpenFileDialog = new OpenFileDialog();
+            DialogResult result = vOpenFileDialog.ShowDialog();
+            PatchContainerPath = vOpenFileDialog.FileName;
+            txtContainerPath.Text = vOpenFileDialog.FileName;
+        }
+
+        private void btnCheckAvailablePatches_Click(object sender, EventArgs e)
+        {
+            string[] AvailablePatches;
+            Patcher = new BinaryPatcherLib.BinaryPatcher(FilePath, PatchContainerPath);
+            AvailablePatches = Patcher.GetPatchListID();
         }
     }
 }

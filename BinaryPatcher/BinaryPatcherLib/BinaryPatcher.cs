@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Xml;
 
@@ -11,6 +9,7 @@ namespace BinaryPatcherLib
     public class BinaryPatcher
     {
         string[] ID;
+        string[] Operation;
         string[] Position;
         string[] Data;
 
@@ -26,6 +25,15 @@ namespace BinaryPatcherLib
             foreach (XmlNode PatchNode in PatchNodeListID)
             {
                 ID[NodeCount] = PatchNode.InnerText;
+                NodeCount++;
+            }
+
+            NodeCount = 0;
+            XmlNodeList PatchNodeListOperation = XmlContainer.SelectNodes("/Container/Patch/Operation");
+            Operation = new string[PatchNodeListOperation.Count];
+            foreach (XmlNode PatchNode in PatchNodeListOperation)
+            {
+                Operation[NodeCount] = PatchNode.InnerText;
                 NodeCount++;
             }
 
@@ -52,13 +60,26 @@ namespace BinaryPatcherLib
 
         public bool ApplyPatchToFile()
         {
+            byte[] FileContent = File.ReadAllBytes(FileToPatchPath);
             FileStream WriteStream;
             WriteStream = new FileStream(FileToPatchPath, FileMode.Open);
             for (int i = 0; i < ID.Length; i++)
             {
-                //WriteStream converts decimal to hexadecimal when it writes data to file.
-                WriteStream.Position = Convert.ToInt32(Position[i], 16);
-                WriteStream.Write(StringToDecByteArray(Data[i]), 0x0, StringToDecByteArray(Data[i]).Length);
+                switch (Operation[i])
+                {
+                    case "overwrite":
+                        //WriteStream converts decimal to hexadecimal when it writes data to file.
+                        WriteStream.Position = Convert.ToInt32(Position[i], 16);
+                        WriteStream.Write(StringToDecByteArray(Data[i]), 0x0, StringToDecByteArray(Data[i]).Length);
+                        break;
+                    case "insert":
+                        string sBytesToInsert = Data[i];
+                        byte[] BytesToInsert = StringToDecByteArray(sBytesToInsert);
+                        byte[] PatchedFileContent = InsertBytes(FileContent, BytesToInsert, Convert.ToInt32(Position[i], 16));
+                        WriteStream.Position = 0;
+                        WriteStream.Write(PatchedFileContent, 0x0, PatchedFileContent.Length);
+                        break;
+                }
             }
             WriteStream.Close();
             return true;
@@ -86,24 +107,6 @@ namespace BinaryPatcherLib
             return ID;
         }
 
-        private byte[] StringToHexByteArray(string StringToConvert)
-        {
-            byte[] DataArray = new byte[StringToConvert.Length / 2];
-            int ChunkSize = 2;
-            int StringLength = StringToConvert.Length;
-            int ArrayItemCount = 0;
-            for (int i = 0; i < StringLength; i += ChunkSize)
-            {
-                if (i + ChunkSize > StringLength)
-                {
-                    ChunkSize = StringLength - i;
-                }
-                DataArray[ArrayItemCount] = Convert.ToByte(StringToConvert.Substring(i, ChunkSize));
-                ArrayItemCount++;
-            }
-            return DataArray;
-        }
-
         private byte[] StringToDecByteArray(string StringToConvert)
         {
             int NumberChars = StringToConvert.Length;
@@ -113,6 +116,18 @@ namespace BinaryPatcherLib
                 bytes[i / 2] = Convert.ToByte(StringToConvert.Substring(i, 2), 16);
             }
             return bytes;
+        }
+
+        public static byte[] InsertBytes(byte[] InputBytes, byte[] BytesToInsert, int StartPosition)
+        {
+            List<byte> ListInputBytes = new List<byte>();
+            ListInputBytes = InputBytes.ToList();
+            for (int i = 0; i < BytesToInsert.Length; i++)
+            {
+                ListInputBytes.Insert(StartPosition, BytesToInsert[i]);
+                StartPosition++;
+            }
+            return ListInputBytes.ToArray<byte>();
         }
     }
 }

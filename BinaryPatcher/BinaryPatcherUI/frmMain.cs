@@ -23,7 +23,8 @@ namespace BinaryPatcherUI
 
         private void btnPatchFile_Click(object sender, EventArgs e)
         {
-
+            Patcher = new BinaryPatcherLib.BinaryPatcher(FilePath, PatchContainerPath);
+            Patcher.ApplyPatchToFile();
         }
 
         private void btnOpenFile_Click(object sender, EventArgs e)
